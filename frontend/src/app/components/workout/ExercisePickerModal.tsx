@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Filter, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -98,6 +98,9 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Adicionar Exercício</DialogTitle>
+          <DialogDescription className="sr-only">
+            Pesquise e selecione um exercício para adicionar à sessão de treino.
+          </DialogDescription>
         </DialogHeader>
 
         {selected ? (

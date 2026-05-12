@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -83,6 +83,9 @@ export function WorkoutSessionModal({ open, onOpenChange, onSubmit }: WorkoutSes
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nova Sessão de Treino</DialogTitle>
+          <DialogDescription className="sr-only">
+            Configure o nome, os dias da semana e o grupo muscular da sessão.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-1.5">

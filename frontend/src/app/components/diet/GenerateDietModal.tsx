@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { Sparkles, ChevronDown, ChevronUp, RefreshCw, Check, Utensils } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
@@ -117,6 +117,9 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
             <Sparkles className="w-5 h-5 text-primary" />
             Gerar Plano Alimentar com IA
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Configure suas preferências de culinária, número de refeições e restrições alimentares para gerar um plano personalizado.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-5 py-2">
