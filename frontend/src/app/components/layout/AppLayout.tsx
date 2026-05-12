@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { cn } from "../ui/utils";
 import { useAuth } from "../../../hooks/useAuth";
+import { Toaster } from "../ui/sonner";
 
 const navItems = [
   { path: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -207,6 +208,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
