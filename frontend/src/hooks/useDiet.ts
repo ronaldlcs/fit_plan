@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import type { DietPlan, Food } from "../types/diet";
 import * as dietService from "../services/dietService";
+import type { GenerateDietPreferences } from "../services/dietService";
 
 export function useDiet() {
   const [plans, setPlans] = useState<DietPlan[]>([]);
@@ -63,7 +64,7 @@ export function useDiet() {
     }
   }, []);
 
-  const searchFoods = async (term: string) => {
+  const searchFoods = useCallback(async (term: string) => {
     setIsLoading(true);
     try {
       const data = await dietService.searchFoods(term);
@@ -74,7 +75,21 @@ export function useDiet() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  const generateDietAI = useCallback(async (preferences: GenerateDietPreferences) => {
+    setIsLoading(true);
+    try {
+      const result = await dietService.generateDietAI(preferences);
+      setError(null);
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao gerar plano com IA");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   return {
     plans,
@@ -86,5 +101,6 @@ export function useDiet() {
     createPlan,
     deletePlan,
     searchFoods,
+    generateDietAI,
   };
 }

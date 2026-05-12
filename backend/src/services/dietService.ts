@@ -1,6 +1,8 @@
 import { dietRepository } from '../repositories/dietRepository'
 import { userRepository } from '../repositories/userRepository'
+import { profileRepository } from '../repositories/profileRepository'
 import { ApiError } from '../utils/apiError'
+import { generateDietPlan, type DietPreferences } from '../ai/dietAIService'
 
 export class DietService {
   async createDietPlan(userId: string, planData: any): Promise<any> {
@@ -131,6 +133,49 @@ export class DietService {
     }
 
     return await dietRepository.getUserProgress(userId)
+  }
+
+  async generateDietAIPlan(userId: string, preferences: DietPreferences): Promise<any> {
+    const user = await userRepository.findById(userId)
+    if (!user) {
+      throw ApiError.notFound('Usuário não encontrado')
+    }
+
+    const profile = await profileRepository.findByUserId(userId)
+
+    const today = new Date()
+    let idade = 25
+    if (profile?.data_nascimento) {
+      const birth = new Date(profile.data_nascimento)
+      idade = today.getFullYear() - birth.getFullYear()
+      if (
+        today.getMonth() < birth.getMonth() ||
+        (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+      ) {
+        idade--
+      }
+    }
+
+    const userProfileInput = {
+      peso_kg: profile?.peso_kg ?? 70,
+      altura_cm: profile?.altura_cm ?? 170,
+      idade,
+      sexo: profile?.sexo ?? 'masculino',
+      objetivo: profile?.objetivo ?? 'manutencao',
+      nivel: profile?.nivel ?? 'intermediario',
+    }
+
+    const generated = await generateDietPlan(userProfileInput, preferences)
+
+    const savedPlan = await dietRepository.createPlan({
+      user_id: userId,
+      nome: generated.planName,
+      objetivo: userProfileInput.objetivo as any,
+      calorias_alvo: generated.dailyCalories,
+      criado_em: new Date().toISOString(),
+    })
+
+    return { ...savedPlan, preview: generated }
   }
 }
 

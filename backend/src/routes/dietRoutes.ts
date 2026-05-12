@@ -34,4 +34,7 @@ router.delete('/meal-foods/:mealFoodId', (req, res, next) =>
 router.post('/progress', (req, res, next) => dietController.addProgress(req, res, next))
 router.get('/progress', (req, res, next) => dietController.getUserProgress(req, res, next))
 
+// Geração de plano via IA
+router.post('/generate-ai', (req, res, next) => dietController.generateDietAI(req, res, next))
+
 export default router

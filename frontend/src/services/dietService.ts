@@ -69,3 +69,14 @@ export async function getUserProgress(): Promise<any[]> {
   const { data } = await api.get("/diet/progress");
   return data;
 }
+
+export interface GenerateDietPreferences {
+  culinaria: string[];
+  restricoes: string[];
+  refeicoes_por_dia: number;
+}
+
+export async function generateDietAI(preferences: GenerateDietPreferences): Promise<any> {
+  const { data } = await api.post("/diet/generate-ai", { preferences });
+  return data.plan;
+}
