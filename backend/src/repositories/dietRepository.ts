@@ -149,6 +149,30 @@ export class DietRepository {
     return data as Alimento
   }
 
+  async getFoodByName(nome: string): Promise<Alimento | null> {
+    const { data, error } = await supabase
+      .from('alimentos')
+      .select('*')
+      .ilike('nome', nome)
+      .order('nome')
+      .limit(1)
+
+    if (error) throw error
+    if (!data || data.length === 0) return null
+    return data[0] as Alimento
+  }
+
+  async createFood(food: Partial<Alimento>): Promise<Alimento> {
+    const { data, error } = await supabase
+      .from('alimentos')
+      .insert([food])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as Alimento
+  }
+
   async searchFoods(searchTerm: string): Promise<Alimento[]> {
     const { data, error } = await supabase
       .from('alimentos')

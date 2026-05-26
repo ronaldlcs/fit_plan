@@ -76,7 +76,32 @@ export interface GenerateDietPreferences {
   refeicoes_por_dia: number;
 }
 
+export interface GeneratedDietPlan {
+  planName: string;
+  dailyCalories: number;
+  macros?: { protein: number; carbs: number; fat: number };
+  meals: Array<{
+    nome: string;
+    horario: string;
+    calorias: number;
+    alimentos: Array<{
+      nome: string;
+      quantidade: string;
+      calorias: number;
+      proteina: number;
+      carbs: number;
+      gordura: number;
+    }>;
+  }>;
+  notes?: string;
+}
+
 export async function generateDietAI(preferences: GenerateDietPreferences): Promise<any> {
   const { data } = await api.post("/diet/generate-ai", { preferences });
+  return data.plan;
+}
+
+export async function saveGeneratedDietPlan(plan: GeneratedDietPlan): Promise<DietPlan> {
+  const { data } = await api.post("/diet/plans/ai", { plan });
   return data.plan;
 }

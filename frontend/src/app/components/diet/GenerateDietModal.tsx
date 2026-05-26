@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Sparkles, ChevronDown, ChevronUp, RefreshCw, Check, Utensils } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Sparkles, ChevronDown, ChevronUp, RefreshCw, Utensils } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
@@ -13,7 +13,8 @@ interface GenerateDietModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGenerate: (prefs: GenerateDietPreferences) => Promise<any>;
-  onSave: (plan: any) => Promise<void>;
+  onReset?: () => void;
+  onSave?: (plan: any) => Promise<void>;
 }
 
 const CULINARIA_OPTIONS = [
@@ -31,16 +32,15 @@ const LOADING_MESSAGES = [
   "Finalizando seu plano personalizado...",
 ];
 
-export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: GenerateDietModalProps) {
+export function GenerateDietModal({ open, onOpenChange, onGenerate, onReset, onSave }: GenerateDietModalProps) {
   const [culinaria, setCulinaria] = useState<string[]>(["brasileira"]);
   const [refeicoes, setRefeicoes] = useState("5");
   const [restricoes, setRestricoes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
   const [preview, setPreview] = useState<any>(null);
   const [expandedMeal, setExpandedMeal] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const msgInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
       setRefeicoes("5");
       setRestricoes("");
       setPreview(null);
-      setSaved(false);
+      setSaving(false);
     }
   }, [open]);
 
@@ -96,18 +96,17 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
     }
   };
 
+  const meals: any[] = preview?.meals ?? [];
+
   const handleSave = async () => {
-    if (!preview) return;
+    if (!preview || !onSave || saving) return;
     setSaving(true);
     try {
       await onSave(preview);
-      setSaved(true);
     } finally {
       setSaving(false);
     }
   };
-
-  const meals: any[] = preview?.meals ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,6 +116,9 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
             <Sparkles className="w-5 h-5 text-primary" />
             Gerar Plano Alimentar com IA
           </DialogTitle>
+          <DialogDescription>
+            Defina suas preferencias e gere um plano alimentar simples com IA.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-5 py-2">
@@ -193,7 +195,15 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
                   <h3 className="font-semibold text-base">{preview.planName}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">{preview.dailyCalories} kcal/dia</p>
                 </div>
-                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setPreview(null); setSaved(false); }}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setPreview(null);
+                    onReset?.();
+                  }}
+                >
                   <RefreshCw className="w-3.5 h-3.5" /> Gerar de novo
                 </Button>
               </div>
@@ -259,20 +269,16 @@ export function GenerateDietModal({ open, onOpenChange, onGenerate, onSave }: Ge
                 <p className="text-xs text-muted-foreground italic bg-muted/40 rounded-lg p-3">{preview.notes}</p>
               )}
 
-              {saved ? (
-                <div className="flex items-center justify-center gap-2 py-3 rounded-lg bg-green-50 text-green-700 text-sm font-medium">
-                  <Check className="w-4 h-4" /> Plano salvo com sucesso!
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-                    Fechar
+              <div className="flex gap-2">
+                {onSave && (
+                  <Button className="flex-1" onClick={handleSave} disabled={saving}>
+                    {saving ? "Salvando..." : "Salvar plano"}
                   </Button>
-                  <Button className="flex-1 gap-2" onClick={handleSave} disabled={saving}>
-                    {saving ? "Salvando..." : "Salvar Plano"}
-                  </Button>
-                </div>
-              )}
+                )}
+                <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+                  Fechar
+                </Button>
+              </div>
             </div>
           )}
         </div>

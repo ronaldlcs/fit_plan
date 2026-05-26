@@ -20,6 +20,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { useDiet } from "../../hooks/useDiet";
+import type { GeneratedDietPlan } from "../../services/dietService";
 import { GenerateDietModal } from "../components/diet/GenerateDietModal";
 
 const macroData = [
@@ -68,8 +69,18 @@ export default function Nutrition() {
   const [water, setWater] = useState(6);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [pendingAIPlan, setPendingAIPlan] = useState<GeneratedDietPlan | null>(null);
 
-  const { plans, isLoading, error, getUserPlans, createPlan, deletePlan, generateDietAI } = useDiet();
+  const {
+    plans,
+    isLoading,
+    error,
+    getUserPlans,
+    createPlan,
+    deletePlan,
+    generateDietAI,
+    saveGeneratedPlan,
+  } = useDiet();
 
   useEffect(() => {
     void getUserPlans();
@@ -103,14 +114,22 @@ export default function Nutrition() {
   };
 
   const handleGenerateAI = async (prefs: any) => {
-    return await generateDietAI(prefs);
+    const result = await generateDietAI(prefs);
+    setPendingAIPlan(result);
+    return result;
   };
 
-  const handleSaveGeneratedPlan = async (preview: any) => {
-    await getUserPlans();
-    toast.success("Plano gerado pela IA salvo com sucesso!");
-    setGenerateModalOpen(false);
+  const handleSaveAIPlan = async (plan: GeneratedDietPlan) => {
+    try {
+      await saveGeneratedPlan(plan);
+      setPendingAIPlan(null);
+      setGenerateModalOpen(false);
+      toast.success("Plano salvo em Planos");
+    } catch {
+      toast.error("Erro ao salvar plano gerado");
+    }
   };
+
 
   const displayPlans = useMemo(() => {
     if (plans.length > 0) {
@@ -412,7 +431,8 @@ export default function Nutrition() {
         open={generateModalOpen}
         onOpenChange={setGenerateModalOpen}
         onGenerate={handleGenerateAI}
-        onSave={handleSaveGeneratedPlan}
+        onReset={() => setPendingAIPlan(null)}
+        onSave={handleSaveAIPlan}
       />
 
       {/* Confirmar deleção */}

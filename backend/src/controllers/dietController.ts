@@ -209,6 +209,29 @@ export class DietController {
     }
   }
 
+  async saveGeneratedDietAI(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId
+      if (!userId) {
+        throw ApiError.unauthorized('Usuário não autenticado')
+      }
+
+      const { plan } = req.body
+      if (!plan) {
+        throw ApiError.badRequest('Plan é obrigatório')
+      }
+
+      const savedPlan = await dietService.saveGeneratedDietPlan(userId, plan)
+
+      res.status(201).json({
+        message: 'Plano alimentar salvo com sucesso',
+        plan: savedPlan,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
   async generateDietAI(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.userId
