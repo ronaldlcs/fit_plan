@@ -117,14 +117,17 @@ export class DietRepository {
     if (error) throw error
   }
 
-  async getMealFoods(mealId: string): Promise<RefeicaoAlimento[]> {
+  async getMealFoods(mealId: string): Promise<Array<RefeicaoAlimento & { alimento: Alimento | null }>> {
     const { data, error } = await supabase
       .from('refeicao_alimentos')
-      .select('*')
+      .select(
+        'id, refeicao_id, alimento_id, quantidade_g, alimento:alimentos(id, nome, calorias, proteinas_g, carboidratos_g, gorduras_g)'
+      )
       .eq('refeicao_id', mealId)
+      .order('id', { ascending: true })
 
     if (error) throw error
-    return (data as RefeicaoAlimento[]) || []
+    return (data as Array<RefeicaoAlimento & { alimento: Alimento | null }>) || []
   }
 
   // Alimentos
