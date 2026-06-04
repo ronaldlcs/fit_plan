@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Flame,
   Zap,
@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Heart,
   Droplets,
+  Dumbbell,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -28,8 +29,12 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { useNavigate } from "react-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useWorkout } from "../../hooks/useWorkout";
 import * as userService from "../../services/userService";
+import type { ActiveWorkoutPlan, WorkoutSession } from "../../types/workout";
+import { WorkoutPlayerModal } from "../components/workout/WorkoutPlayerModal";
 
 const weeklyData = [
   { day: "Mon", calories: 420, minutes: 45 },
@@ -91,9 +96,11 @@ const recentActivity = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { getActivePlan, completeSession } = useWorkout();
   const [stats, setStats] = useState<any>(null);
-  const totalExercises = todayExercises.length;
-  const completedCount = todayExercises.filter((exercise) => exercise.done).length;
+  const [activePlan, setActivePlan] = useState<ActiveWorkoutPlan | null>(null);
+  const [playerSession, setPlayerSession] = useState<WorkoutSession | null>(null);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -107,6 +114,38 @@ export default function Dashboard() {
 
     void loadStats();
   }, []);
+
+  const loadActivePlan = useCallback(async () => {
+    try {
+      const data = await getActivePlan();
+      setActivePlan(data);
+    } catch {
+      setActivePlan(null);
+    }
+  }, [getActivePlan]);
+
+  useEffect(() => {
+    void loadActivePlan();
+  }, [loadActivePlan]);
+
+  const planSessions = activePlan?.sessoes ?? [];
+  const completedSessionIds = new Set(activePlan?.completedSessionIds ?? []);
+
+  const handleCompleteSession = async (
+    sessionId: string,
+    payload: { plano_treino_id?: string; duracao_min?: number }
+  ) => {
+    await completeSession(sessionId, payload);
+    await loadActivePlan();
+  };
+
+  // Estatísticas de exercícios: usa o plano ativo quando disponível, senão demo
+  const totalExercises = activePlan
+    ? planSessions.length
+    : todayExercises.length;
+  const completedCount = activePlan
+    ? planSessions.filter((s) => completedSessionIds.has(s.id)).length
+    : todayExercises.filter((exercise) => exercise.done).length;
 
   const firstName = useMemo(() => {
     if (!user?.nome) return "Atleta";
@@ -222,62 +261,117 @@ export default function Dashboard() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-base">Today's Workout</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-0.5">Chest & Triceps · 55 min</p>
+                  <CardTitle className="text-base">
+                    {activePlan ? "Seu Plano Ativo" : "Today's Workout"}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {activePlan
+                      ? `${activePlan.nome ?? "Plano de treino"} · ${planSessions.length} sessões`
+                      : "Chest & Triceps · 55 min"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs">
-                    {completedCount}/{totalExercises} done
+                    {completedCount}/{totalExercises} {activePlan ? "hoje" : "done"}
                   </Badge>
-                  <Button size="sm" className="gap-1.5 h-8">
-                    <Play className="w-3 h-3" />
-                    Continue
+                  <Button size="sm" className="gap-1.5 h-8" onClick={() => navigate("/workouts")}>
+                    {activePlan ? (<><Dumbbell className="w-3 h-3" /> Ver planos</>) : (<><Play className="w-3 h-3" /> Continue</>)}
                   </Button>
                 </div>
               </div>
               <Progress
-                value={(completedCount / totalExercises) * 100}
+                value={totalExercises > 0 ? (completedCount / totalExercises) * 100 : 0}
                 className="mt-3 h-2"
               />
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2">
-                {todayExercises.map((exercise, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                      exercise.done ? "bg-green-50" : "bg-muted/50"
-                    }`}
-                  >
+              {activePlan ? (
+                planSessions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    Este plano ainda não possui sessões.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {planSessions.map((session) => {
+                      const done = completedSessionIds.has(session.id);
+                      const exCount = (session.exercicios ?? []).length;
+                      return (
+                        <div
+                          key={session.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                            done ? "bg-green-50" : "bg-muted/50"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              done ? "bg-green-500 text-white" : "bg-purple-100 text-purple-600"
+                            }`}
+                          >
+                            {done ? <CheckCircle2 className="w-4 h-4" /> : <Dumbbell className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                              {session.nome ?? `Sessão ${session.ordem}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{exCount} exercícios</p>
+                          </div>
+                          {done ? (
+                            <Badge variant="outline" className="text-xs shrink-0 text-green-600 border-green-200">
+                              Concluído hoje
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs gap-1 shrink-0"
+                              onClick={() => setPlayerSession(session)}
+                            >
+                              <Play className="w-3 h-3" /> Iniciar Treino
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                <div className="space-y-2">
+                  {todayExercises.map((exercise, i) => (
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                        exercise.done
-                          ? "bg-green-500 text-white"
-                          : "border-2 border-border"
+                      key={i}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                        exercise.done ? "bg-green-50" : "bg-muted/50"
                       }`}
                     >
-                      {exercise.done && <CheckCircle2 className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-medium ${
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                           exercise.done
-                            ? "text-muted-foreground line-through"
-                            : "text-foreground"
+                            ? "bg-green-500 text-white"
+                            : "border-2 border-border"
                         }`}
                       >
-                        {exercise.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {exercise.sets} sets × {exercise.reps} reps
-                      </p>
+                        {exercise.done && <CheckCircle2 className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm font-medium ${
+                            exercise.done
+                              ? "text-muted-foreground line-through"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {exercise.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {exercise.sets} sets × {exercise.reps} reps
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {exercise.weight}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      {exercise.weight}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -446,6 +540,14 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <WorkoutPlayerModal
+        open={!!playerSession}
+        onOpenChange={(v) => { if (!v) setPlayerSession(null); }}
+        plan={activePlan}
+        session={playerSession}
+        onComplete={handleCompleteSession}
+      />
     </div>
   );
 }

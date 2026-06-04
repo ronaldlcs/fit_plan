@@ -17,6 +17,7 @@ export interface PlanoTreino {
   objetivo: Objetivo | null
   nivel: Nivel | null
   duracao_semanas: number
+  ativo: boolean
   criado_em: string
 }
 
@@ -35,6 +36,7 @@ export interface SessaoExercicio {
   series: number | null
   repeticoes: string | null
   descanso_s: number
+  carga_sugerida: string | null
   ordem: number | null
 }
 
@@ -42,6 +44,7 @@ export interface TreinoRealizado {
   id: string
   user_id: string
   plano_treino_id: string | null
+  sessao_id: string | null
   data_treino: string
   duracao_min: number | null
   observacao: string | null

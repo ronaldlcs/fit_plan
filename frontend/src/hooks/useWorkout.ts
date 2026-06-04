@@ -1,5 +1,10 @@
 ﻿import { useCallback, useState } from "react";
-import type { Exercise, WorkoutPlan } from "../types/workout";
+import type {
+  ActiveWorkoutPlan,
+  Exercise,
+  GenerateWorkoutPreferences,
+  WorkoutPlan,
+} from "../types/workout";
 import * as workoutService from "../services/workoutService";
 
 export function useWorkout() {
@@ -118,6 +123,35 @@ export function useWorkout() {
     return await workoutService.addExerciseToSession(sessionId, exerciseData);
   }, []);
 
+  const generatePlan = useCallback(async (preferences: GenerateWorkoutPreferences) => {
+    setIsLoading(true);
+    try {
+      const newPlan = await workoutService.generateWorkoutPlan(preferences);
+      setPlans((prev) => [newPlan, ...prev.filter((p) => p.id !== newPlan.id)]);
+      setError(null);
+      return newPlan;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao gerar plano");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getActivePlan = useCallback(async (): Promise<ActiveWorkoutPlan | null> => {
+    return await workoutService.getActiveWorkoutPlan();
+  }, []);
+
+  const completeSession = useCallback(
+    async (
+      sessionId: string,
+      payload: { plano_treino_id?: string; duracao_min?: number; observacao?: string } = {}
+    ) => {
+      return await workoutService.completeSession(sessionId, payload);
+    },
+    []
+  );
+
   return {
     plans,
     exercises,
@@ -132,5 +166,8 @@ export function useWorkout() {
     addSession,
     removeSession,
     addExerciseToSession,
+    generatePlan,
+    getActivePlan,
+    completeSession,
   };
 }
