@@ -98,7 +98,7 @@ export function AppLayout() {
         <div className="p-4 mx-3 mt-4 rounded-xl bg-accent/50">
           <div className="flex items-center gap-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src="https://images.unsplash.com/photo-1770664615015-ad137461ccf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=80" />
+              <AvatarImage src="icon"/>
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -198,7 +198,7 @@ export function AppLayout() {
 
           {/* Avatar */}
           <Avatar className="w-8 h-8 cursor-pointer" onClick={() => navigate("/profile") }>
-            <AvatarImage src="https://images.unsplash.com/photo-1770664615015-ad137461ccf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=80" />
+            <AvatarImage src="icon" />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </header>

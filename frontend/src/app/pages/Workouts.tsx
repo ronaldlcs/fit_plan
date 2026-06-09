@@ -49,10 +49,10 @@ import {
 } from "../components/ui/dialog";
 
 const DISCOVER_PLANS = [
-  { id: 1, name: "Push Pull Legs", category: "Strength", duration: "60 min", calories: "450-550", level: "Intermediate", days: 6, rating: 4.8, enrolled: 2341, progress: 35, image: "https://images.unsplash.com/photo-1517963628607-235ccdd5476c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400", color: "from-purple-900/70", tags: ["Hypertrophy", "Muscle Gain"], active: true },
-  { id: 2, name: "HIIT Cardio Blast", category: "HIIT", duration: "30 min", calories: "300-400", level: "Advanced", days: 4, rating: 4.6, enrolled: 1820, progress: 0, image: "https://images.unsplash.com/photo-1724763750965-e61e1fe6a540?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400", color: "from-red-900/70", tags: ["Fat Loss", "Endurance"], active: false },
-  { id: 3, name: "Morning Yoga Flow", category: "Yoga", duration: "45 min", calories: "150-200", level: "Beginner", days: 5, rating: 4.9, enrolled: 3102, progress: 0, image: "https://images.unsplash.com/photo-1767611125032-20b291ec1c5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400", color: "from-teal-900/70", tags: ["Flexibility", "Mindfulness"], active: false },
-  { id: 4, name: "Cycling Intervals", category: "Cardio", duration: "45 min", calories: "400-500", level: "Intermediate", days: 3, rating: 4.7, enrolled: 987, progress: 0, image: "https://images.unsplash.com/photo-1635706055150-5827085ca635?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400", color: "from-blue-900/70", tags: ["Endurance", "Cardio"], active: false },
+  { id: 1, name: "Push Pull Legs", category: "Strength", duration: "60 min", calories: "450-550", level: "Intermediate", days: 6, rating: 4.8, enrolled: 2341, progress: 35, image: "icon", color: "from-purple-900/70", tags: ["Hypertrophy", "Muscle Gain"], active: true },
+  { id: 2, name: "HIIT Cardio Blast", category: "HIIT", duration: "30 min", calories: "300-400", level: "Advanced", days: 4, rating: 4.6, enrolled: 1820, progress: 0, image: "icon", color: "from-red-900/70", tags: ["Fat Loss", "Endurance"], active: false },
+  { id: 3, name: "Morning Yoga Flow", category: "Yoga", duration: "45 min", calories: "150-200", level: "Beginner", days: 5, rating: 4.9, enrolled: 3102, progress: 0, image: "icon", color: "from-teal-900/70", tags: ["Flexibility", "Mindfulness"], active: false },
+  { id: 4, name: "Cycling Intervals", category: "Cardio", duration: "45 min", calories: "400-500", level: "Intermediate", days: 3, rating: 4.7, enrolled: 987, progress: 0, image: "icon",  tags: ["Endurance", "Cardio"], active: false },
 ];
 
 const CATEGORIES = ["All", "Strength", "Cardio", "HIIT", "Yoga"];
@@ -364,9 +364,6 @@ export default function Workouts() {
               <p className="text-sm font-medium text-foreground mb-1">Nenhum plano criado</p>
               <p className="text-xs text-muted-foreground mb-4">Gere um plano personalizado ou crie manualmente</p>
               <div className="flex justify-center gap-2">
-                <Button size="sm" variant="outline" className="gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
-                  <Plus className="w-4 h-4" /> Criar manualmente
-                </Button>
                 <Button size="sm" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
                   <Sparkles className="w-4 h-4" /> Criar Plano
                 </Button>

@@ -436,7 +436,7 @@ export default function Nutrition() {
                 {displayPlans.map((plan, index) => (
                   <Card key={plan.id} className="border-border overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
                     <div className="h-32 relative overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1606859191214-25806e8e2423?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=300" alt={plan.name} className="w-full h-full object-cover" />
+                      <img src="icon" alt={plan.name} className="w-full h-full object-cover" />
                       <div className={`absolute inset-0 ${["bg-purple-600","bg-orange-600","bg-green-600"][index % 3]} opacity-60`} />
                       <div className="absolute inset-0 p-4 flex flex-col justify-end">
                         <h3 className="text-white font-semibold">{plan.name}</h3>

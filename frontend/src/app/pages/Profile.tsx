@@ -101,7 +101,7 @@ export default function Profile() {
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <Card className="border-border overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-primary via-primary/80 to-primary/70" />
+        <div/>
         <CardContent className="p-6 -mt-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>

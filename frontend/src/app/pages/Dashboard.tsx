@@ -65,34 +65,11 @@ const todayExercises = [
 ];
 
 const upcomingWorkouts = [
-  { day: "Tomorrow", name: "Back & Biceps", duration: "55 min", icon: "💪" },
-  { day: "Thu", name: "Rest Day", duration: "Recovery", icon: "😴" },
-  { day: "Fri", name: "Leg Day", duration: "60 min", icon: "🦵" },
+  { day: "Tomorrow", name: "Back & Biceps", duration: "55 min"},
+  { day: "Thu", name: "Rest Day", duration: "Recovery" },
+  { day: "Fri", name: "Leg Day", duration: "60 min" },
 ];
 
-const recentActivity = [
-  {
-    user: "Alex M.",
-    action: "completed Chest Day",
-    time: "2h ago",
-    avatar: "AM",
-    img: "https://images.unsplash.com/photo-1517963628607-235ccdd5476c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=40",
-  },
-  {
-    user: "Sam K.",
-    action: "set new PR on Deadlift",
-    time: "4h ago",
-    avatar: "SK",
-    img: null,
-  },
-  {
-    user: "You",
-    action: "logged morning run",
-    time: "6h ago",
-    avatar: "JD",
-    img: "https://images.unsplash.com/photo-1770664615015-ad137461ccf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=40",
-  },
-];
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -166,7 +143,7 @@ export default function Dashboard() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `url(https://images.unsplash.com/photo-1766287453739-c3ffc3f37d05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080)`,
+            backgroundImage: `icon)`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -175,7 +152,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <p className="text-sm opacity-75">Good afternoon,</p>
-              <h2 className="text-2xl font-semibold mt-0.5">{firstName}! 👋</h2>
+              <h2 className="text-2xl font-semibold mt-0.5">{firstName}! </h2>
               <p className="text-sm opacity-75 mt-1">
                 You&apos;re on a <span className="font-semibold text-orange-300">{streakDias}-day streak</span>. Keep it up!
               </p>
@@ -432,7 +409,7 @@ export default function Dashboard() {
                   key={i}
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
                 >
-                  <span className="text-xl">{workout.icon}</span>
+                  <span className="text-xl"></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{workout.name}</p>
                     <p className="text-xs text-muted-foreground">{workout.duration}</p>
@@ -478,30 +455,6 @@ export default function Dashboard() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              {recentActivity.map((activity, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Avatar className="w-8 h-8 shrink-0">
-                    {activity.img && <AvatarImage src={activity.img} />}
-                    <AvatarFallback className="text-xs">{activity.avatar}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground leading-relaxed">
-                      <span className="font-medium">{activity.user}</span>{" "}
-                      {activity.action}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
             </CardContent>
           </Card>
         </div>
