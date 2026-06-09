@@ -266,9 +266,6 @@ export default function Workouts() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
-            <Plus className="w-4 h-4" /> Criar manualmente
-          </Button>
           <Button className="gap-2" onClick={() => setGenerateModalOpen(true)}>
             <Sparkles className="w-4 h-4" /> Criar Plano
           </Button>

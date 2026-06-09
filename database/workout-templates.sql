@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS sessoes_exercicios (
 CREATE TABLE IF NOT EXISTS treinos_realizados (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    plano_treino_id UUID REFERENCES planos_treino(id),
+    plano_treino_id UUID REFERENCES planos_treino(id) ON DELETE CASCADE,
     data_treino DATE,
     duracao_min INTEGER,
     observacao TEXT
@@ -131,6 +131,14 @@ ALTER TABLE sessoes_exercicios
 -- Vincular um treino realizado à sessão concluída (saber A/B/C concluída hoje)
 ALTER TABLE treinos_realizados
   ADD COLUMN IF NOT EXISTS sessao_id UUID REFERENCES sessoes_treino(id) ON DELETE SET NULL;
+
+-- Garantir que excluir um plano remova os treinos realizados vinculados
+-- (a FK original não tinha ON DELETE CASCADE, o que bloqueava o DELETE do plano)
+ALTER TABLE treinos_realizados
+  DROP CONSTRAINT IF EXISTS treinos_realizados_plano_treino_id_fkey;
+ALTER TABLE treinos_realizados
+  ADD CONSTRAINT treinos_realizados_plano_treino_id_fkey
+  FOREIGN KEY (plano_treino_id) REFERENCES planos_treino(id) ON DELETE CASCADE;
 
 -- ------------------------------------------------------------
 -- 3. Tabelas de template (planos pré-cadastrados)

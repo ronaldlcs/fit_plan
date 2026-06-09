@@ -21,7 +21,10 @@ export class WorkoutRepository {
       .eq('id', planId)
       .single()
 
-    if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
     return data as PlanoTreino
   }
 
@@ -60,6 +63,16 @@ export class WorkoutRepository {
   }
 
   async deletePlan(planId: string): Promise<void> {
+    // treinos_realizados referencia planos_treino sem ON DELETE CASCADE,
+    // então removemos os registros dependentes antes de excluir o plano.
+    // (sessoes_treino e sessoes_exercicios já cascateiam automaticamente)
+    const { error: trError } = await supabase
+      .from('treinos_realizados')
+      .delete()
+      .eq('plano_treino_id', planId)
+
+    if (trError) throw trError
+
     const { error } = await supabase
       .from('planos_treino')
       .delete()

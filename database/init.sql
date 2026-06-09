@@ -220,8 +220,8 @@ CREATE TABLE treinos_realizados (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     
-    plano_treino_id UUID REFERENCES planos_treino(id),
-    
+    plano_treino_id UUID REFERENCES planos_treino(id) ON DELETE CASCADE,
+
     data_treino DATE,
     duracao_min INTEGER,
     
