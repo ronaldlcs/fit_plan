@@ -36,5 +36,6 @@ router.get('/progress', (req, res, next) => dietController.getUserProgress(req, 
 
 // Geração de plano via IA
 router.post('/generate-ai', (req, res, next) => dietController.generateDietAI(req, res, next))
+router.post('/plans/ai', (req, res, next) => dietController.saveGeneratedDietAI(req, res, next))
 
 export default router

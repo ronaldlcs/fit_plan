@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import {
   Plus, Apple, Droplets, Flame, Search, ChevronRight,
   Coffee, Utensils, Moon, Trash2, Sparkles, Salad,
@@ -20,6 +21,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { useDiet } from "../../hooks/useDiet";
+import type { GeneratedDietPlan } from "../../services/dietService";
 import { GenerateDietModal } from "../components/diet/GenerateDietModal";
 
 const macroData = [
@@ -65,17 +67,43 @@ function PlanCardSkeleton() {
 }
 
 export default function Nutrition() {
+  const navigate = useNavigate();
   const [water, setWater] = useState(6);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [pendingAIPlan, setPendingAIPlan] = useState<GeneratedDietPlan | null>(null);
 
-  const { plans, isLoading, error, getUserPlans, createPlan, deletePlan, generateDietAI } = useDiet();
+  const {
+    plans,
+    isLoading,
+    error,
+    getUserPlans,
+    createPlan,
+    deletePlan,
+    generateDietAI,
+    saveGeneratedPlan,
+  } = useDiet();
 
   useEffect(() => {
     void getUserPlans();
   }, [getUserPlans]);
 
+  const hasActivePlan = plans.length > 0;
+  const activePlanMessage = "Você já possui um plano alimentar ativo. Remova o atual para criar ou gerar outro.";
+
+  const openGenerateModal = () => {
+    if (hasActivePlan) {
+      toast.error(activePlanMessage);
+      return;
+    }
+    setGenerateModalOpen(true);
+  };
+
   const handleCreatePlan = async () => {
+    if (hasActivePlan) {
+      toast.error(activePlanMessage);
+      return;
+    }
     const nome = window.prompt("Nome do plano alimentar:");
     if (!nome) return;
     const objetivo = window.prompt("Objetivo (manutencao, emagrecimento, hipertrofia, condicionamento):", "manutencao");
@@ -103,14 +131,30 @@ export default function Nutrition() {
   };
 
   const handleGenerateAI = async (prefs: any) => {
-    return await generateDietAI(prefs);
+    if (hasActivePlan) {
+      toast.error(activePlanMessage);
+      return null;
+    }
+    const result = await generateDietAI(prefs);
+    setPendingAIPlan(result);
+    return result;
   };
 
-  const handleSaveGeneratedPlan = async (preview: any) => {
-    await getUserPlans();
-    toast.success("Plano gerado pela IA salvo com sucesso!");
-    setGenerateModalOpen(false);
+  const handleSaveAIPlan = async (plan: GeneratedDietPlan) => {
+    try {
+      if (hasActivePlan) {
+        toast.error(activePlanMessage);
+        return;
+      }
+      await saveGeneratedPlan(plan);
+      setPendingAIPlan(null);
+      setGenerateModalOpen(false);
+      toast.success("Plano salvo em Planos");
+    } catch {
+      toast.error("Erro ao salvar plano gerado");
+    }
   };
+
 
   const displayPlans = useMemo(() => {
     if (plans.length > 0) {
@@ -133,6 +177,10 @@ export default function Nutrition() {
   const totalCalories = DEMO_MEALS.reduce((sum, m) => sum + m.calories, 0);
   const calorieGoal = plans[0]?.calorias_alvo ?? 2500;
 
+  const handleViewDetails = (planId: string) => {
+    navigate(`/nutrition/${planId}`);
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -144,10 +192,15 @@ export default function Nutrition() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={openGenerateModal}
+            disabled={hasActivePlan}
+          >
             <Sparkles className="w-4 h-4" /> Gerar com IA
           </Button>
-          <Button className="gap-2" onClick={handleCreatePlan}>
+          <Button className="gap-2" onClick={handleCreatePlan} disabled={hasActivePlan}>
             <Plus className="w-4 h-4" /> Novo Plano
           </Button>
         </div>
@@ -341,6 +394,11 @@ export default function Nutrition() {
 
         {/* ── PLANOS ── */}
         <TabsContent value="plans">
+          {hasActivePlan && (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 text-amber-700 px-3 py-2 text-sm">
+              {activePlanMessage}
+            </div>
+          )}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => <PlanCardSkeleton key={i} />)}
@@ -351,10 +409,10 @@ export default function Nutrition() {
               <p className="text-sm font-medium text-foreground mb-1">Nenhum plano alimentar</p>
               <p className="text-xs text-muted-foreground mb-4">Crie manualmente ou gere um com IA</p>
               <div className="flex justify-center gap-2">
-                <Button size="sm" variant="outline" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+                <Button size="sm" variant="outline" className="gap-2" onClick={openGenerateModal} disabled={hasActivePlan}>
                   <Sparkles className="w-3.5 h-3.5" /> Gerar com IA
                 </Button>
-                <Button size="sm" className="gap-2" onClick={handleCreatePlan}>
+                <Button size="sm" className="gap-2" onClick={handleCreatePlan} disabled={hasActivePlan}>
                   <Plus className="w-3.5 h-3.5" /> Criar Plano
                 </Button>
               </div>
@@ -364,7 +422,13 @@ export default function Nutrition() {
               {/* Botão de IA em destaque */}
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-muted-foreground">{displayPlans.length} plano(s)</p>
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={openGenerateModal}
+                  disabled={hasActivePlan}
+                >
                   <Sparkles className="w-3.5 h-3.5" /> Gerar com IA
                 </Button>
               </div>
@@ -386,7 +450,11 @@ export default function Nutrition() {
                       </div>
                       {plan.isReal ? (
                         <div className="flex gap-2">
-                          <Button size="sm" className="flex-1 h-8 text-xs gap-1">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 text-xs gap-1"
+                            onClick={() => handleViewDetails(plan.id)}
+                          >
                             Ver Detalhes <ChevronRight className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant="destructive" className="h-8 text-xs gap-1" onClick={() => setDeleteTarget({ id: plan.id, name: plan.name })}>
@@ -412,7 +480,8 @@ export default function Nutrition() {
         open={generateModalOpen}
         onOpenChange={setGenerateModalOpen}
         onGenerate={handleGenerateAI}
-        onSave={handleSaveGeneratedPlan}
+        onReset={() => setPendingAIPlan(null)}
+        onSave={handleSaveAIPlan}
       />
 
       {/* Confirmar deleção */}

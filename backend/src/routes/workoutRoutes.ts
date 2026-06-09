@@ -21,6 +21,19 @@ router.post('/plans', (req, res, next) =>
 router.get('/plans', (req, res, next) =>
   workoutController.getUserWorkoutPlans(req, res, next)
 )
+
+// Geração de plano a partir de template + plano ativo
+// (definidos antes de '/plans/:planId' para não colidir com a rota dinâmica)
+router.post('/plans/generate', (req, res, next) =>
+  workoutController.generatePlan(req, res, next)
+)
+router.get('/plans/active', (req, res, next) =>
+  workoutController.getActivePlan(req, res, next)
+)
+router.post('/plans/:planId/activate', (req, res, next) =>
+  workoutController.setActivePlan(req, res, next)
+)
+
 router.get('/plans/:planId', (req, res, next) =>
   workoutController.getWorkoutPlan(req, res, next)
 )
@@ -37,6 +50,9 @@ router.post('/plans/:planId/sessions', (req, res, next) =>
 )
 router.delete('/sessions/:sessionId', (req, res, next) =>
   workoutController.removeSession(req, res, next)
+)
+router.post('/sessions/:sessionId/complete', (req, res, next) =>
+  workoutController.completeSession(req, res, next)
 )
 
 // Exercícios em sessões

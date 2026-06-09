@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import type { DietPlan, Food } from "../types/diet";
 import * as dietService from "../services/dietService";
-import type { GenerateDietPreferences } from "../services/dietService";
+import type { GenerateDietPreferences, GeneratedDietPlan } from "../services/dietService";
 
 export function useDiet() {
   const [plans, setPlans] = useState<DietPlan[]>([]);
@@ -91,6 +91,21 @@ export function useDiet() {
     }
   }, []);
 
+  const saveGeneratedPlan = useCallback(async (plan: GeneratedDietPlan) => {
+    setIsLoading(true);
+    try {
+      const saved = await dietService.saveGeneratedDietPlan(plan);
+      setPlans((prev) => (prev.some((item) => item.id === saved.id) ? prev : [...prev, saved]));
+      setError(null);
+      return saved;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar plano com IA");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     plans,
     foods,
@@ -102,5 +117,6 @@ export function useDiet() {
     deletePlan,
     searchFoods,
     generateDietAI,
+    saveGeneratedPlan,
   };
 }

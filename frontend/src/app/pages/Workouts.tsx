@@ -31,10 +31,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import { Sparkles } from "lucide-react";
 import { useWorkout } from "../../hooks/useWorkout";
+import { getWorkoutPlan } from "../../services/workoutService";
+import type { WorkoutPlan, WorkoutSession } from "../../types/workout";
 import { WorkoutPlanModal, type PlanFormData } from "../components/workout/WorkoutPlanModal";
 import { WorkoutSessionModal, type SessionFormData } from "../components/workout/WorkoutSessionModal";
 import { ExercisePickerModal, type ExerciseConfig } from "../components/workout/ExercisePickerModal";
+import { GenerateWorkoutModal } from "../components/workout/GenerateWorkoutModal";
+import { WorkoutPlayerModal } from "../components/workout/WorkoutPlayerModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 
 const DISCOVER_PLANS = [
   { id: 1, name: "Push Pull Legs", category: "Strength", duration: "60 min", calories: "450-550", level: "Intermediate", days: 6, rating: 4.8, enrolled: 2341, progress: 35, image: "https://images.unsplash.com/photo-1517963628607-235ccdd5476c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400", color: "from-purple-900/70", tags: ["Hypertrophy", "Muscle Gain"], active: true },
@@ -89,6 +101,13 @@ export default function Workouts() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
 
+  // Geração + execução de plano
+  const [generateModalOpen, setGenerateModalOpen] = useState(false);
+  const [playerPlan, setPlayerPlan] = useState<WorkoutPlan | null>(null);
+  const [playerSession, setPlayerSession] = useState<WorkoutSession | null>(null);
+  const [pickerPlan, setPickerPlan] = useState<WorkoutPlan | null>(null);
+  const [pickerLoading, setPickerLoading] = useState(false);
+
   const {
     plans,
     isLoading,
@@ -100,6 +119,8 @@ export default function Workouts() {
     addSession,
     addExerciseToSession,
     filterExercises,
+    generatePlan,
+    completeSession,
   } = useWorkout();
 
   useEffect(() => {
@@ -184,6 +205,57 @@ export default function Workouts() {
     toast.success("Exercício adicionado!");
   };
 
+  // ── Geração de plano a partir de template ──
+  const handleGenerate = async (prefs: { nivel: string; objetivo: string; duracao_semanas: number }) => {
+    const plan = await generatePlan(prefs);
+    toast.success("Plano gerado com sucesso!");
+    return plan;
+  };
+
+  const handleStartSession = (plan: WorkoutPlan, session: WorkoutSession) => {
+    setGenerateModalOpen(false);
+    setPlayerPlan(plan);
+    setPlayerSession(session);
+  };
+
+  // ── Execução: abre seletor de sessão para um plano existente ──
+  const openStartPicker = async (planId: string) => {
+    setPickerLoading(true);
+    try {
+      const full = await getWorkoutPlan(planId);
+      const sessions = full.sessoes ?? [];
+      if (sessions.length === 0) {
+        toast.error("Este plano ainda não possui sessões. Adicione sessões ou gere um novo plano.");
+        return;
+      }
+      if (sessions.length === 1) {
+        setPlayerPlan(full);
+        setPlayerSession(sessions[0]);
+        return;
+      }
+      setPickerPlan(full);
+    } catch {
+      toast.error("Erro ao carregar o plano.");
+    } finally {
+      setPickerLoading(false);
+    }
+  };
+
+  const startSessionFromPicker = (session: WorkoutSession) => {
+    if (!pickerPlan) return;
+    setPlayerPlan(pickerPlan);
+    setPlayerSession(session);
+    setPickerPlan(null);
+  };
+
+  const handleCompleteSession = async (
+    sessionId: string,
+    payload: { plano_treino_id?: string; duracao_min?: number }
+  ) => {
+    await completeSession(sessionId, payload);
+    toast.success("Sessão concluída e registrada!");
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -193,9 +265,11 @@ export default function Workouts() {
             Descubra e gerencie seus programas de treino
           </p>
         </div>
-        <Button className="gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
-          <Plus className="w-4 h-4" /> Criar Plano
-        </Button>
+        <div className="flex gap-2">
+          <Button className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+            <Sparkles className="w-4 h-4" /> Criar Plano
+          </Button>
+        </div>
       </div>
 
       {error ? (
@@ -288,10 +362,15 @@ export default function Workouts() {
             <div className="text-center py-16 border-2 border-dashed border-border rounded-xl">
               <Dumbbell className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
               <p className="text-sm font-medium text-foreground mb-1">Nenhum plano criado</p>
-              <p className="text-xs text-muted-foreground mb-4">Crie seu primeiro plano de treino personalizado</p>
-              <Button size="sm" className="gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
-                <Plus className="w-4 h-4" /> Criar Plano
-              </Button>
+              <p className="text-xs text-muted-foreground mb-4">Gere um plano personalizado ou crie manualmente</p>
+              <div className="flex justify-center gap-2">
+                <Button size="sm" variant="outline" className="gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
+                  <Plus className="w-4 h-4" /> Criar manualmente
+                </Button>
+                <Button size="sm" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+                  <Sparkles className="w-4 h-4" /> Criar Plano
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -351,7 +430,7 @@ export default function Workouts() {
 
                     {/* Ações rápidas */}
                     <div className="flex gap-2 mt-3">
-                      <Button size="sm" className="flex-1 h-8 text-xs gap-1">
+                      <Button size="sm" className="flex-1 h-8 text-xs gap-1" onClick={() => openStartPicker(plan.id)} disabled={pickerLoading}>
                         <Play className="w-3 h-3" /> Iniciar Treino
                       </Button>
                       <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
@@ -362,8 +441,8 @@ export default function Workouts() {
                 </Card>
               ))}
 
-              <Button variant="outline" className="w-full gap-2" onClick={() => { setEditingPlan(null); setPlanModalOpen(true); }}>
-                <Plus className="w-4 h-4" /> Novo Plano
+              <Button variant="outline" className="w-full gap-2" onClick={() => setGenerateModalOpen(true)}>
+                <Sparkles className="w-4 h-4" /> Gerar Novo Plano
               </Button>
             </div>
           )}
@@ -417,6 +496,54 @@ export default function Workouts() {
         onAddExercise={handleAddExercise}
         filterExercisesFn={filterExercises}
       />
+
+      <GenerateWorkoutModal
+        open={generateModalOpen}
+        onOpenChange={setGenerateModalOpen}
+        onGenerate={handleGenerate}
+        onStartSession={handleStartSession}
+      />
+
+      <WorkoutPlayerModal
+        open={!!playerSession}
+        onOpenChange={(v) => { if (!v) { setPlayerSession(null); setPlayerPlan(null); } }}
+        plan={playerPlan}
+        session={playerSession}
+        onComplete={handleCompleteSession}
+      />
+
+      {/* Seletor de sessão (quando o plano tem várias sessões) */}
+      <Dialog open={!!pickerPlan} onOpenChange={(v) => { if (!v) setPickerPlan(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Qual sessão você vai treinar?</DialogTitle>
+            <DialogDescription>
+              {pickerPlan?.nome ? `Plano: ${pickerPlan.nome}` : "Escolha a sessão para iniciar"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {(pickerPlan?.sessoes ?? []).map((session) => (
+              <button
+                key={session.id}
+                type="button"
+                onClick={() => startSessionFromPicker(session)}
+                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                    <Dumbbell className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{session.nome ?? `Sessão ${session.ordem}`}</p>
+                    <p className="text-xs text-muted-foreground">{(session.exercicios ?? []).length} exercícios</p>
+                  </div>
+                </div>
+                <Play className="w-4 h-4 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>

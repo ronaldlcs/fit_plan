@@ -5,6 +5,11 @@ import {
   SessaoExercicio,
   TreinoRealizado,
 } from '../models/WorkoutPlan'
+import {
+  TemplateTreino,
+  TemplateSessao,
+  TemplateSessaoExercicio,
+} from '../models/WorkoutTemplate'
 import { Exercicio } from '../models/Exercicio'
 
 export class WorkoutRepository {
@@ -16,7 +21,10 @@ export class WorkoutRepository {
       .eq('id', planId)
       .single()
 
-    if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
+    if (error) {
+      if (error.code === 'PGRST116') return null
+      throw error
+    }
     return data as PlanoTreino
   }
 
@@ -55,6 +63,16 @@ export class WorkoutRepository {
   }
 
   async deletePlan(planId: string): Promise<void> {
+    // treinos_realizados referencia planos_treino sem ON DELETE CASCADE,
+    // então removemos os registros dependentes antes de excluir o plano.
+    // (sessoes_treino e sessoes_exercicios já cascateiam automaticamente)
+    const { error: trError } = await supabase
+      .from('treinos_realizados')
+      .delete()
+      .eq('plano_treino_id', planId)
+
+    if (trError) throw trError
+
     const { error } = await supabase
       .from('planos_treino')
       .delete()
@@ -129,6 +147,31 @@ export class WorkoutRepository {
     return (data as SessaoExercicio[]) || []
   }
 
+  // Exercícios da sessão já com os detalhes do exercício (nome, grupo, etc.)
+  async getSessionExercisesWithDetails(
+    sessionId: string
+  ): Promise<(SessaoExercicio & { exercicio: Exercicio | null })[]> {
+    const { data, error } = await supabase
+      .from('sessoes_exercicios')
+      .select('*, exercicio:exercicios(*)')
+      .eq('sessao_id', sessionId)
+      .order('ordem', { ascending: true })
+
+    if (error) throw error
+    return (data as (SessaoExercicio & { exercicio: Exercicio | null })[]) || []
+  }
+
+  async getSessionById(sessionId: string): Promise<SessaoTreino | null> {
+    const { data, error } = await supabase
+      .from('sessoes_treino')
+      .select('*')
+      .eq('id', sessionId)
+      .single()
+
+    if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
+    return data as SessaoTreino
+  }
+
   // Exercícios
   async getAllExercises(): Promise<Exercicio[]> {
     const { data, error } = await supabase
@@ -201,6 +244,92 @@ export class WorkoutRepository {
 
     if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
     return data as TreinoRealizado
+  }
+
+  // Plano ativo do usuário (refletido no Dashboard)
+  async getActivePlan(userId: string): Promise<PlanoTreino | null> {
+    const { data, error } = await supabase
+      .from('planos_treino')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('ativo', true)
+      .order('criado_em', { ascending: false })
+      .limit(1)
+
+    if (error) throw error
+    return (data && data.length > 0 ? (data[0] as PlanoTreino) : null)
+  }
+
+  // Marca um plano como ativo e desativa os demais do usuário
+  async setActivePlan(userId: string, planId: string): Promise<void> {
+    const { error: clearError } = await supabase
+      .from('planos_treino')
+      .update({ ativo: false })
+      .eq('user_id', userId)
+
+    if (clearError) throw clearError
+
+    const { error } = await supabase
+      .from('planos_treino')
+      .update({ ativo: true })
+      .eq('id', planId)
+
+    if (error) throw error
+  }
+
+  // Treinos realizados de hoje (para saber quais sessões foram concluídas)
+  async getCompletedSessionsToday(userId: string): Promise<TreinoRealizado[]> {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+
+    const { data, error } = await supabase
+      .from('treinos_realizados')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('data_treino', start.toISOString())
+
+    if (error) throw error
+    return (data as TreinoRealizado[]) || []
+  }
+
+  // ── Templates de treino (planos pré-cadastrados) ──
+  async getTemplate(
+    nivel: string,
+    objetivo: string
+  ): Promise<TemplateTreino | null> {
+    const { data, error } = await supabase
+      .from('templates_treino')
+      .select('*')
+      .eq('nivel', nivel)
+      .eq('objetivo', objetivo)
+      .single()
+
+    if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
+    return data as TemplateTreino
+  }
+
+  async getTemplateSessions(templateId: string): Promise<TemplateSessao[]> {
+    const { data, error } = await supabase
+      .from('templates_sessoes')
+      .select('*')
+      .eq('template_id', templateId)
+      .order('ordem', { ascending: true })
+
+    if (error) throw error
+    return (data as TemplateSessao[]) || []
+  }
+
+  async getTemplateSessionExercises(
+    templateSessaoId: string
+  ): Promise<TemplateSessaoExercicio[]> {
+    const { data, error } = await supabase
+      .from('templates_sessoes_exercicios')
+      .select('*')
+      .eq('template_sessao_id', templateSessaoId)
+      .order('ordem', { ascending: true })
+
+    if (error) throw error
+    return (data as TemplateSessaoExercicio[]) || []
   }
 }
 

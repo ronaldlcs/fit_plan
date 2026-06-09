@@ -13,6 +13,19 @@ export interface Meal {
   tipo: string;
   horario: string | null;
   ordem: number | null;
+  alimentos?: MealFoodDetail[];
+}
+
+export interface MealFoodDetail {
+  id: string;
+  refeicao_id: string;
+  alimento_id: string;
+  quantidade_g: number | null;
+  alimento?: Food | null;
+  calorias_total?: number | null;
+  proteinas_total?: number | null;
+  carboidratos_total?: number | null;
+  gorduras_total?: number | null;
 }
 
 export interface DietPlan {

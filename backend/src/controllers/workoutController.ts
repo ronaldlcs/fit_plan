@@ -196,6 +196,91 @@ export class WorkoutController {
       next(error)
     }
   }
+
+  async generatePlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId
+      if (!userId) {
+        throw ApiError.unauthorized('Usuário não autenticado')
+      }
+
+      const { preferences } = req.body
+
+      const plan = await workoutService.generatePlanFromTemplate(userId, {
+        nivel: preferences?.nivel,
+        objetivo: preferences?.objetivo,
+        duracao_semanas: preferences?.duracao_semanas,
+      })
+
+      res.status(201).json({
+        message: 'Plano de treino gerado com sucesso',
+        plan,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getActivePlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId
+      if (!userId) {
+        throw ApiError.unauthorized('Usuário não autenticado')
+      }
+
+      const plan = await workoutService.getActivePlan(userId)
+
+      res.json(plan)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async setActivePlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId
+      if (!userId) {
+        throw ApiError.unauthorized('Usuário não autenticado')
+      }
+
+      const { planId } = req.params
+
+      const plan = await workoutService.setActivePlan(userId, planId)
+
+      res.json({
+        message: 'Plano de treino ativado com sucesso',
+        plan,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async completeSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.userId
+      if (!userId) {
+        throw ApiError.unauthorized('Usuário não autenticado')
+      }
+
+      const { sessionId } = req.params
+      const { plano_treino_id, duracao_min, observacao } = req.body
+
+      const workout = await workoutService.completeSession(userId, {
+        sessao_id: sessionId,
+        plano_treino_id,
+        duracao_min,
+        observacao,
+      })
+
+      res.status(201).json({
+        message: 'Sessão concluída e registrada com sucesso',
+        workout,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export const workoutController = new WorkoutController()

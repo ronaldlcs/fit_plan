@@ -6,6 +6,7 @@ import Workouts from "./pages/Workouts";
 import Exercises from "./pages/Exercises";
 import ProgressPage from "./pages/Progress";
 import Nutrition from "./pages/Nutrition";
+import DietPlanDetails from "./pages/DietPlanDetails";
 import Profile from "./pages/Profile";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: "exercises", Component: Exercises },
       { path: "progress", Component: ProgressPage },
       { path: "nutrition", Component: Nutrition },
+      { path: "nutrition/:planId", Component: DietPlanDetails },
       { path: "diet", element: <Navigate to="/nutrition" replace /> },
       { path: "profile", Component: Profile },
     ],

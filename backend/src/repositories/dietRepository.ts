@@ -117,14 +117,17 @@ export class DietRepository {
     if (error) throw error
   }
 
-  async getMealFoods(mealId: string): Promise<RefeicaoAlimento[]> {
+  async getMealFoods(mealId: string): Promise<Array<RefeicaoAlimento & { alimento: Alimento | null }>> {
     const { data, error } = await supabase
       .from('refeicao_alimentos')
-      .select('*')
+      .select(
+        'id, refeicao_id, alimento_id, quantidade_g, alimento:alimentos(id, nome, calorias, proteinas_g, carboidratos_g, gorduras_g)'
+      )
       .eq('refeicao_id', mealId)
+      .order('id', { ascending: true })
 
     if (error) throw error
-    return (data as RefeicaoAlimento[]) || []
+    return (data as Array<RefeicaoAlimento & { alimento: Alimento | null }>) || []
   }
 
   // Alimentos
@@ -146,6 +149,30 @@ export class DietRepository {
       .single()
 
     if (error) return error.code === 'PGRST116' ? null : (() => { throw error })()
+    return data as Alimento
+  }
+
+  async getFoodByName(nome: string): Promise<Alimento | null> {
+    const { data, error } = await supabase
+      .from('alimentos')
+      .select('*')
+      .ilike('nome', nome)
+      .order('nome')
+      .limit(1)
+
+    if (error) throw error
+    if (!data || data.length === 0) return null
+    return data[0] as Alimento
+  }
+
+  async createFood(food: Partial<Alimento>): Promise<Alimento> {
+    const { data, error } = await supabase
+      .from('alimentos')
+      .insert([food])
+      .select()
+      .single()
+
+    if (error) throw error
     return data as Alimento
   }
 
