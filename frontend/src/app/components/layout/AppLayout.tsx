@@ -14,12 +14,17 @@ import {
   Flame,
   ChevronRight,
   LogOut,
+  CheckCheck,
+  Trash2,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { useAuth } from "../../../hooks/useAuth";
+import { useNotifications } from "../../../hooks/useNotifications";
+import { formatNotifTime } from "../../../services/notificationStore";
 import { Toaster } from "../ui/sonner";
 
 const navItems = [
@@ -33,9 +38,12 @@ const navItems = [
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { notifications, hasUnread, unreadCount, markRead, markAllRead, clearAll } =
+    useNotifications();
 
   const displayName = user?.nome || "Usuario";
   const initials = displayName
@@ -100,7 +108,7 @@ export function AppLayout() {
         <div className="p-4 mx-3 mt-4 rounded-xl bg-accent/50">
           <div className="flex items-center gap-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src="icon"/>
+              <AvatarImage src="icon" />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -193,10 +201,107 @@ export function AppLayout() {
           </div>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-11 w-11 shrink-0">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
-          </Button>
+          <Popover
+            open={notifOpen}
+            onOpenChange={(open) => {
+              setNotifOpen(open);
+              if (open && hasUnread) markAllRead();
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative h-11 w-11 shrink-0">
+                <Bell className="w-5 h-5" />
+                {hasUnread && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-0 max-h-[480px] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground">Notificações</p>
+                  {unreadCount > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 h-4 bg-red-500 text-white hover:bg-red-500">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllRead}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+                      title="Marcar todas como lidas"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {notifications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+                      title="Limpar todas"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="overflow-y-auto flex-1 divide-y divide-border">
+                {notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                    <Bell className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Nenhuma notificação</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      As notificações aparecem aqui quando você completa treinos e mais.
+                    </p>
+                  </div>
+                ) : (
+                  notifications.map((notif) => (
+                    <button
+                      key={notif.id}
+                      type="button"
+                      onClick={() => markRead(notif.id)}
+                      className={cn(
+                        "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50",
+                        notif.unread && "bg-blue-50/60"
+                      )}
+                    >
+                      <span className="text-xl shrink-0 mt-0.5">{notif.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
+                          {notif.unread && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{notif.body}</p>
+                        <p className="text-[10px] text-muted-foreground/70 mt-1">
+                          {formatNotifTime(notif.createdAt)}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {/* Footer */}
+              {notifications.length > 0 && (
+                <div className="px-4 py-2.5 border-t border-border shrink-0">
+                  <p className="text-xs text-muted-foreground text-center">
+                    {unreadCount > 0
+                      ? `${unreadCount} não lida${unreadCount !== 1 ? "s" : ""}`
+                      : "Você está em dia com todas as notificações."}
+                  </p>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
           {/* Avatar */}
           <Avatar className="w-9 h-9 cursor-pointer shrink-0" onClick={() => navigate("/profile")}>

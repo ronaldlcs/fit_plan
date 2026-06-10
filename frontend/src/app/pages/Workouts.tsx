@@ -14,6 +14,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { addNotification } from "../../services/notificationStore";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -233,6 +234,12 @@ export default function Workouts() {
   const handleGenerate = async (prefs: { nivel: string; objetivo: string; duracao_semanas: number }) => {
     const plan = await generatePlan(prefs);
     toast.success("Plano gerado com sucesso!");
+    addNotification({
+      icon: "🏋️",
+      title: "Novo plano criado!",
+      body: `Plano "${plan.nome ?? "de treino"}" está pronto. Comece agora!`,
+      category: "plan",
+    });
     return plan;
   };
 
@@ -278,6 +285,14 @@ export default function Workouts() {
   ) => {
     await completeSession(sessionId, payload);
     toast.success("Sessão concluída e registrada!");
+    addNotification({
+      icon: "✅",
+      title: "Sessão concluída!",
+      body: payload.duracao_min
+        ? `Você treinou por ${payload.duracao_min} minuto${payload.duracao_min !== 1 ? "s" : ""}. Ótimo trabalho!`
+        : "Mais uma sessão no banco. Continue assim!",
+      category: "workout",
+    });
   };
 
   return (

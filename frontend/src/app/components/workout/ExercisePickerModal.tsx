@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, Filter, Plus } from "lucide-react";
+import { Search, Filter, Plus, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -44,6 +44,7 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [config, setConfig] = useState<ExerciseConfig>(defaultConfig);
   const [adding, setAdding] = useState(false);
+  const [addedCount, setAddedCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const runSearch = useCallback(async (q: string, muscle: string, level: string, equip: string) => {
@@ -78,6 +79,7 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
       setEquipFilter("Todos");
       setSelected(null);
       setConfig(defaultConfig);
+      setAddedCount(0);
     }
   }, [open]);
 
@@ -86,6 +88,7 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
     setAdding(true);
     try {
       await onAddExercise(selected.id, config);
+      setAddedCount((n) => n + 1);
       setSelected(null);
       setConfig(defaultConfig);
     } finally {
@@ -102,6 +105,15 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
             Pesquise e selecione um exercício para adicionar à sessão de treino.
           </DialogDescription>
         </DialogHeader>
+
+        {addedCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 text-sm shrink-0">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>
+              {addedCount} exercício{addedCount !== 1 ? "s" : ""} adicionado{addedCount !== 1 ? "s" : ""} à sessão
+            </span>
+          </div>
+        )}
 
         {selected ? (
           <div className="space-y-4 flex-1 overflow-y-auto py-2">

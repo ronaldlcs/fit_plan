@@ -32,6 +32,7 @@ import { useWorkout } from "../../hooks/useWorkout";
 import * as userService from "../../services/userService";
 import * as workoutService from "../../services/workoutService";
 import * as dietService from "../../services/dietService";
+import { addNotification } from "../../services/notificationStore";
 import type { ActiveWorkoutPlan, WorkoutLog, WorkoutSession } from "../../types/workout";
 import { WorkoutPlayerModal } from "../components/workout/WorkoutPlayerModal";
 
@@ -122,6 +123,14 @@ export default function Dashboard() {
   ) => {
     await completeSession(sessionId, payload);
     await loadActivePlan();
+    addNotification({
+      icon: "✅",
+      title: "Sessão concluída!",
+      body: payload.duracao_min
+        ? `Você treinou por ${payload.duracao_min} minuto${payload.duracao_min !== 1 ? "s" : ""}. Ótimo trabalho!`
+        : "Mais uma sessão no banco. Continue assim!",
+      category: "workout",
+    });
   };
 
   const firstName = useMemo(() => {

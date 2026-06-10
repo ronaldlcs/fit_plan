@@ -3,7 +3,6 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { PrivateRoute } from "./components/auth/PrivateRoute";
 import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
-import Exercises from "./pages/Exercises";
 import ProgressPage from "./pages/Progress";
 import Nutrition from "./pages/Nutrition";
 import DietPlanDetails from "./pages/DietPlanDetails";
@@ -32,7 +31,7 @@ export const router = createBrowserRouter([
       { path: "dashboard", Component: Dashboard },
       { path: "workouts", Component: Workouts },
       { path: "workout", element: <Navigate to="/workouts" replace /> },
-      { path: "exercises", Component: Exercises },
+      { path: "exercises", element: <Navigate to="/workouts" replace /> },
       { path: "progress", Component: ProgressPage },
       { path: "nutrition", Component: Nutrition },
       { path: "nutrition/:planId", Component: DietPlanDetails },

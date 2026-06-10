@@ -20,7 +20,7 @@ async function main() {
     //  Garante que o usuário Admin exista no banco ao iniciar
     await seedAdminUser();
 
-    app.listen(env.port, () => {
+    app.listen(env.port, '0.0.0.0', () => {
       console.log(`Servidor rodando em http://localhost:${env.port}`);
       console.log(`Ambiente: ${env.nodeEnv}`);
     });
