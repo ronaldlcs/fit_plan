@@ -1,18 +1,17 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Clock,
   Flame,
   Dumbbell,
   Play,
   Plus,
-  Star,
-  Users,
   ChevronRight,
   Filter,
   Trash2,
   Pencil,
   ChevronDown,
   LayoutList,
+  CalendarCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "../components/ui/card";
@@ -33,8 +32,8 @@ import {
 } from "../components/ui/alert-dialog";
 import { Sparkles } from "lucide-react";
 import { useWorkout } from "../../hooks/useWorkout";
-import { getWorkoutPlan } from "../../services/workoutService";
-import type { WorkoutPlan, WorkoutSession } from "../../types/workout";
+import { getWorkoutPlan, getUserWorkouts } from "../../services/workoutService";
+import type { ActiveWorkoutPlan, WorkoutLog, WorkoutPlan, WorkoutSession } from "../../types/workout";
 import { WorkoutPlanModal, type PlanFormData } from "../components/workout/WorkoutPlanModal";
 import { WorkoutSessionModal, type SessionFormData } from "../components/workout/WorkoutSessionModal";
 import { ExercisePickerModal, type ExerciseConfig } from "../components/workout/ExercisePickerModal";
@@ -49,10 +48,10 @@ import {
 } from "../components/ui/dialog";
 
 const DISCOVER_PLANS = [
-  { id: 1, name: "Push Pull Legs", category: "Strength", duration: "60 min", calories: "450-550", level: "Intermediate", days: 6, rating: 4.8, enrolled: 2341, progress: 35, image: "icon", color: "from-purple-900/70", tags: ["Hypertrophy", "Muscle Gain"], active: true },
-  { id: 2, name: "HIIT Cardio Blast", category: "HIIT", duration: "30 min", calories: "300-400", level: "Advanced", days: 4, rating: 4.6, enrolled: 1820, progress: 0, image: "icon", color: "from-red-900/70", tags: ["Fat Loss", "Endurance"], active: false },
-  { id: 3, name: "Morning Yoga Flow", category: "Yoga", duration: "45 min", calories: "150-200", level: "Beginner", days: 5, rating: 4.9, enrolled: 3102, progress: 0, image: "icon", color: "from-teal-900/70", tags: ["Flexibility", "Mindfulness"], active: false },
-  { id: 4, name: "Cycling Intervals", category: "Cardio", duration: "45 min", calories: "400-500", level: "Intermediate", days: 3, rating: 4.7, enrolled: 987, progress: 0, image: "icon",  tags: ["Endurance", "Cardio"], active: false },
+  { id: 1, name: "Push Pull Legs", category: "Strength", duration: "60 min", calories: "450-550", level: "Intermediate", days: 6, color: "from-purple-900/70", tags: ["Hypertrophy", "Muscle Gain"] },
+  { id: 2, name: "HIIT Cardio Blast", category: "HIIT", duration: "30 min", calories: "300-400", level: "Advanced", days: 4, color: "from-red-900/70", tags: ["Fat Loss", "Endurance"] },
+  { id: 3, name: "Força Total", category: "Strength", duration: "55 min", calories: "400-500", level: "Intermediate", days: 4, color: "from-blue-900/70", tags: ["Strength", "Muscle Gain"] },
+  { id: 4, name: "Cardio & Core", category: "Cardio", duration: "45 min", calories: "350-450", level: "Beginner", days: 3, color: "from-teal-900/70", tags: ["Endurance", "Core"] },
 ];
 
 const CATEGORIES = ["All", "Strength", "Cardio", "HIIT", "Yoga"];
@@ -108,6 +107,10 @@ export default function Workouts() {
   const [pickerPlan, setPickerPlan] = useState<WorkoutPlan | null>(null);
   const [pickerLoading, setPickerLoading] = useState(false);
 
+  const [activePlan, setActivePlan] = useState<ActiveWorkoutPlan | null>(null);
+  const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
   const {
     plans,
     isLoading,
@@ -120,12 +123,31 @@ export default function Workouts() {
     addExerciseToSession,
     filterExercises,
     generatePlan,
+    getActivePlan,
     completeSession,
   } = useWorkout();
 
+  const loadActivePlan = useCallback(async () => {
+    try {
+      const data = await getActivePlan();
+      setActivePlan(data);
+    } catch {
+      setActivePlan(null);
+    }
+  }, [getActivePlan]);
+
   useEffect(() => {
     void getUserPlans();
-  }, [getUserPlans]);
+    void loadActivePlan();
+  }, [getUserPlans, loadActivePlan]);
+
+  useEffect(() => {
+    setLogsLoading(true);
+    getUserWorkouts()
+      .then((logs) => setWorkoutLogs(logs))
+      .catch(() => setWorkoutLogs([]))
+      .finally(() => setLogsLoading(false));
+  }, []);
 
   const filtered = selectedCategory === "All"
     ? DISCOVER_PLANS
@@ -187,6 +209,7 @@ export default function Workouts() {
       dia_semana: data.dias[0] ?? null,
     });
     toast.success("Sessão adicionada!");
+    void getUserPlans();
   };
 
   const openExercisePicker = (sessionId: string) => {
@@ -203,6 +226,7 @@ export default function Workouts() {
       descanso_s: config.descanso_s,
     });
     toast.success("Exercício adicionado!");
+    void getUserPlans();
   };
 
   // ── Geração de plano a partir de template ──
@@ -285,40 +309,70 @@ export default function Workouts() {
 
         {/* ── DISCOVER ── */}
         <TabsContent value="discover" className="space-y-4">
-          <Card className="border-border bg-primary text-primary-foreground overflow-hidden">
-            <CardContent className="p-0">
-              <div className="relative h-40">
-                <img src={DISCOVER_PLANS[0].image} alt="Active plan" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-                <div className="relative p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between h-full">
-                  <div>
-                    <Badge className="bg-white/20 text-white border-white/30 mb-2 text-xs">Ativo</Badge>
-                    <h3 className="text-lg font-semibold">Push Pull Legs</h3>
-                    <p className="text-sm opacity-75 mt-0.5">Semana 3 de 12 · 35% concluído</p>
-                    <Progress value={35} className="mt-2 h-1.5 w-48 bg-white/20 [&>div]:bg-white" />
+          {/* Banner: plano ativo real do usuário */}
+          {activePlan ? (
+            <Card className="border-border bg-primary text-primary-foreground overflow-hidden">
+              <CardContent className="p-0">
+                <div className="relative h-40">
+                  <div className="relative p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between h-full">
+                    <div>
+                      <Badge className="bg-white/20 text-white border-white/30 mb-2 text-xs">Plano Ativo</Badge>
+                      <h3 className="text-lg font-semibold">{activePlan.nome ?? "Meu Plano"}</h3>
+                      <p className="text-sm opacity-75 mt-0.5">
+                        {activePlan.sessoes?.length ?? 0} sessões · {activePlan.objetivo ?? "treino"}
+                      </p>
+                      <Progress
+                        value={
+                          activePlan.sessoes && activePlan.sessoes.length > 0
+                            ? Math.round(
+                                ((activePlan.completedSessionIds?.length ?? 0) /
+                                  activePlan.sessoes.length) *
+                                  100
+                              )
+                            : 0
+                        }
+                        className="mt-2 h-1.5 w-48 bg-white/20 [&>div]:bg-white"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-white text-primary hover:bg-white/90 mt-4 sm:mt-0 w-fit gap-2"
+                      onClick={() => openStartPicker(activePlan.id)}
+                    >
+                      <Play className="w-3 h-3" /> Iniciar Treino
+                    </Button>
                   </div>
-                  <Button size="sm" className="bg-white text-primary hover:bg-white/90 mt-4 sm:mt-0 w-fit gap-2">
-                    <Play className="w-3 h-3" /> Continuar
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-border border-dashed">
+              <CardContent className="p-6 text-center">
+                <Dumbbell className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm font-medium text-foreground mb-1">Nenhum plano ativo</p>
+                <p className="text-xs text-muted-foreground mb-3">Crie ou gere um plano para ver seu progresso aqui</p>
+                <Button size="sm" className="gap-2" onClick={() => setGenerateModalOpen(true)}>
+                  <Sparkles className="w-3.5 h-3.5" /> Criar Plano
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
             {CATEGORIES.map((cat) => (
-              <Button key={cat} variant={selectedCategory === cat ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setSelectedCategory(cat)}>
+              <Button key={cat} variant={selectedCategory === cat ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setSelectedCategory(cat)}>
                 {cat}
               </Button>
             ))}
           </div>
 
+          <p className="text-xs text-muted-foreground font-medium">Templates de treino sugeridos</p>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((plan) => (
               <Card key={plan.id} className="border-border overflow-hidden group cursor-pointer hover:shadow-md transition-shadow">
-                <div className="relative h-44">
-                  <img src={plan.image} alt={plan.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className={`absolute inset-0 bg-linear-to-t ${plan.color} to-transparent`} />
+                <div className={`relative h-44 bg-gradient-to-br ${plan.color} to-gray-800`}>
                   <div className="absolute inset-0 p-4 flex flex-col justify-end">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge className="bg-white/20 text-white border-white/30 text-xs">{plan.category}</Badge>
@@ -326,25 +380,23 @@ export default function Workouts() {
                     </div>
                     <h3 className="text-white font-semibold">{plan.name}</h3>
                   </div>
-                  {plan.active && <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-400 rounded-full ring-2 ring-white" />}
                 </div>
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground mb-3">
                     <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {plan.duration}</span>
                     <span className="flex items-center gap-1"><Flame className="w-3.5 h-3.5" /> {plan.calories} cal</span>
                     <span className="flex items-center gap-1"><Dumbbell className="w-3.5 h-3.5" /> {plan.days}x/sem</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />{plan.rating}</span>
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" />{plan.enrolled.toLocaleString()} inscritos</span>
                   </div>
                   <div className="flex gap-1 mb-3">
                     {plan.tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1.5">{tag}</Badge>
                     ))}
                   </div>
-                  <Button className="w-full h-8 text-xs gap-1" variant={plan.active ? "outline" : "default"}>
-                    {plan.active ? (<>Ver Progresso <ChevronRight className="w-3 h-3" /></>) : (<>Iniciar <Play className="w-3 h-3" /></>)}
+                  <Button
+                    className="w-full h-10 text-xs gap-1"
+                    onClick={() => setGenerateModalOpen(true)}
+                  >
+                    Usar como base <Play className="w-3 h-3" />
                   </Button>
                 </CardContent>
               </Card>
@@ -386,13 +438,13 @@ export default function Workouts() {
                         </p>
                       </div>
                       <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditPlan(plan)}>
-                          <Pencil className="w-3.5 h-3.5" />
+                        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => openEditPlan(plan)}>
+                          <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget({ id: plan.id, name: plan.nome || "este plano" })}>
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <Button size="icon" variant="ghost" className="h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTarget({ id: plan.id, name: plan.nome || "este plano" })}>
+                          <Trash2 className="w-4 h-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
+                        <Button size="icon" variant="ghost" className="h-10 w-10" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
                           <ChevronDown className={`w-4 h-4 transition-transform ${expandedPlan === plan.id ? "rotate-180" : ""}`} />
                         </Button>
                       </div>
@@ -400,26 +452,46 @@ export default function Workouts() {
 
                     {/* Accordion de sessões */}
                     {expandedPlan === plan.id && (
-                      <div className="mt-4 space-y-2 pl-2 border-l-2 border-border ml-5">
+                      <div className="mt-4 space-y-1.5 pl-2 border-l-2 border-border ml-5">
                         {(plan.sessoes ?? []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2">Nenhuma sessão. Adicione uma abaixo.</p>
+                          <p className="text-xs text-muted-foreground py-2 pl-1">Nenhuma sessão. Adicione uma abaixo.</p>
                         ) : (
-                          (plan.sessoes ?? []).map((sessao) => (
-                            <div key={sessao.id} className="flex items-center justify-between gap-2 py-1.5">
-                              <div className="flex items-center gap-2">
-                                <LayoutList className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm text-foreground">{sessao.nome || `Sessão ${sessao.ordem}`}</span>
-                                {sessao.dia_semana && (
-                                  <Badge variant="secondary" className="text-[10px] py-0 px-1.5">{sessao.dia_semana}</Badge>
-                                )}
+                          (plan.sessoes ?? []).map((sessao) => {
+                            const exCount = (sessao.exercicios ?? []).length;
+                            return (
+                              <div key={sessao.id} className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-muted/40 transition-colors">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                                    exCount > 0 ? "bg-purple-100 text-purple-600" : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    <LayoutList className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">
+                                      {sessao.nome || `Sessão ${sessao.ordem}`}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {exCount > 0
+                                        ? `${exCount} exercício${exCount !== 1 ? "s" : ""}`
+                                        : "Sem exercícios"}
+                                      {sessao.dia_semana ? ` · ${sessao.dia_semana}` : ""}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs gap-1 shrink-0"
+                                  onClick={() => openExercisePicker(sessao.id)}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  {exCount > 0 ? "Adicionar" : "Exercício"}
+                                </Button>
                               </div>
-                              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 shrink-0" onClick={() => openExercisePicker(sessao.id)}>
-                                <Plus className="w-3 h-3" /> Exercício
-                              </Button>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
-                        <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1 mt-2" onClick={() => openSessionModal(plan.id)}>
+                        <Button size="sm" variant="outline" className="w-full h-10 text-xs gap-1 mt-1" onClick={() => openSessionModal(plan.id)}>
                           <Plus className="w-3 h-3" /> Adicionar Sessão
                         </Button>
                       </div>
@@ -427,10 +499,10 @@ export default function Workouts() {
 
                     {/* Ações rápidas */}
                     <div className="flex gap-2 mt-3">
-                      <Button size="sm" className="flex-1 h-8 text-xs gap-1" onClick={() => openStartPicker(plan.id)} disabled={pickerLoading}>
+                      <Button size="sm" className="flex-1 h-10 text-xs gap-1" onClick={() => openStartPicker(plan.id)} disabled={pickerLoading}>
                         <Play className="w-3 h-3" /> Iniciar Treino
                       </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
+                      <Button size="sm" variant="outline" className="h-10 text-xs gap-1" onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}>
                         Ver Sessões
                       </Button>
                     </div>
@@ -447,28 +519,46 @@ export default function Workouts() {
 
         {/* ── HISTÓRICO ── */}
         <TabsContent value="history">
-          <div className="space-y-3">
-            {[
-              { date: "Seg, 7 Abr", name: "Peito & Tríceps", duration: "52 min", calories: 380, exercises: 5 },
-              { date: "Sáb, 5 Abr", name: "Leg Day", duration: "68 min", calories: 510, exercises: 7 },
-              { date: "Qui, 3 Abr", name: "Costas & Bíceps", duration: "60 min", calories: 440, exercises: 6 },
-              { date: "Ter, 1 Abr", name: "HIIT Cardio", duration: "32 min", calories: 380, exercises: 8 },
-              { date: "Seg, 31 Mar", name: "Ombros & Core", duration: "48 min", calories: 310, exercises: 5 },
-            ].map((session, i) => (
-              <Card key={i} className="border-border">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0 font-bold text-sm">✓</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{session.name}</p>
-                      <p className="text-xs text-muted-foreground">{session.exercises} exercícios · {session.duration} · {session.calories} cal</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{session.date}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {logsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => <MyPlanCardSkeleton key={i} />)}
+            </div>
+          ) : workoutLogs.length === 0 ? (
+            <div className="text-center py-16 border-2 border-dashed border-border rounded-xl">
+              <CalendarCheck className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-foreground mb-1">Nenhum treino registrado</p>
+              <p className="text-xs text-muted-foreground">Conclua uma sessão de treino para ver seu histórico aqui</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[...workoutLogs]
+                .sort((a, b) => new Date(b.data_treino).getTime() - new Date(a.data_treino).getTime())
+                .map((log) => (
+                  <Card key={log.id} className="border-border">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0 font-bold text-sm">✓</div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {log.observacao ?? "Treino concluído"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.duracao_min ? `${log.duracao_min} min` : "Duração não registrada"}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(log.data_treino).toLocaleDateString("pt-BR", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -511,7 +601,7 @@ export default function Workouts() {
 
       {/* Seletor de sessão (quando o plano tem várias sessões) */}
       <Dialog open={!!pickerPlan} onOpenChange={(v) => { if (!v) setPickerPlan(null); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Qual sessão você vai treinar?</DialogTitle>
             <DialogDescription>
@@ -524,7 +614,7 @@ export default function Workouts() {
                 key={session.id}
                 type="button"
                 onClick={() => startSessionFromPicker(session)}
-                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left"
+                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:bg-muted transition-colors text-left min-h-[56px]"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">

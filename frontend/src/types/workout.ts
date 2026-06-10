@@ -3,6 +3,7 @@ export interface Exercise {
   nome: string;
   descricao: string | null;
   grupo_muscular_id: number | null;
+  grupo_muscular: { id: number; nome: string } | null;
   equipamento: string | null;
   nivel: "iniciante" | "intermediario" | "avancado";
   criado_em: string;

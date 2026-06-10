@@ -61,6 +61,8 @@ export function AppLayout() {
     item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path)
   );
 
+  const bottomNavItems = navItems.slice(0, 5);
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar overlay for mobile */}
@@ -162,21 +164,21 @@ export function AppLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 border-b border-border bg-card flex items-center gap-4 px-6 shrink-0">
+        <header className="h-16 border-b border-border bg-card flex items-center gap-3 px-4 sm:px-6 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden h-12 w-12"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="w-5 h-5" />
           </Button>
 
-          <div className="flex-1">
-            <h1 className="text-base font-semibold text-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold text-foreground truncate">
               {currentPage?.label || "FitPlan"}
             </h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">
+            <p className="text-xs text-muted-foreground hidden sm:block truncate">
               {formattedDate}
             </p>
           </div>
@@ -191,23 +193,47 @@ export function AppLayout() {
           </div>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative h-11 w-11 shrink-0">
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
           </Button>
 
           {/* Avatar */}
-          <Avatar className="w-8 h-8 cursor-pointer" onClick={() => navigate("/profile") }>
+          <Avatar className="w-9 h-9 cursor-pointer shrink-0" onClick={() => navigate("/profile")}>
             <AvatarImage src="icon" />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border flex lg:hidden z-30">
+        {bottomNavItems.map((item) => {
+          const isActive =
+            item.path === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(item.path);
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
+
       <Toaster richColors position="top-right" />
     </div>
   );

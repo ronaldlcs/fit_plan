@@ -27,6 +27,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
   const [finishing, setFinishing] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState<number>(Date.now());
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
       setDoneIds(new Set());
       setFinishing(false);
       setFinished(false);
+      setFinishError(null);
       setStartedAt(Date.now());
     }
   }, [open, session?.id]);
@@ -46,19 +48,18 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
 
   const markCurrentDone = () => {
     if (!current) return;
-    setDoneIds((prev) => {
-      const next = new Set(prev);
-      next.add(current.id);
-      return next;
-    });
-    // Avança para o próximo exercício ainda não concluído
+    // Computa o novo set ANTES de setar estado para evitar closure estale
+    const updatedDoneIds = new Set(doneIds);
+    updatedDoneIds.add(current.id);
+    setDoneIds(updatedDoneIds);
+    // Avança para o próximo exercício ainda não concluído usando o set já atualizado
     const nextIndex = exercises.findIndex(
-      (ex, i) => i > currentIndex && !doneIds.has(ex.id)
+      (ex, i) => i > currentIndex && !updatedDoneIds.has(ex.id)
     );
     if (nextIndex !== -1) {
       setCurrentIndex(nextIndex);
     } else {
-      const firstPending = exercises.findIndex((ex) => ex.id !== current.id && !doneIds.has(ex.id));
+      const firstPending = exercises.findIndex((ex) => !updatedDoneIds.has(ex.id));
       if (firstPending !== -1) setCurrentIndex(firstPending);
     }
   };
@@ -66,6 +67,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
   const handleFinish = async () => {
     if (!session) return;
     setFinishing(true);
+    setFinishError(null);
     try {
       const duracao_min = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
       await onComplete(session.id, {
@@ -73,6 +75,8 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
         duracao_min,
       });
       setFinished(true);
+    } catch {
+      setFinishError("Erro ao registrar sessão. Tente novamente.");
     } finally {
       setFinishing(false);
     }
@@ -80,7 +84,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90dvh] !flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-primary" />
@@ -108,7 +112,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
             </Button>
           </div>
         ) : (
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 min-h-0">
             {/* Progresso */}
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
@@ -161,7 +165,7 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
                     type="button"
                     key={ex.id}
                     onClick={() => !isDone && setCurrentIndex(i)}
-                    className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors min-h-[48px] ${
                       isDone ? "bg-green-50" : isCurrent ? "bg-primary/5 border border-primary/30" : "bg-muted/40 hover:bg-muted"
                     }`}
                   >
@@ -186,6 +190,9 @@ export function WorkoutPlayerModal({ open, onOpenChange, plan, session, onComple
               })}
             </div>
 
+            {finishError && (
+              <p className="text-sm text-destructive text-center">{finishError}</p>
+            )}
             <Button
               className="w-full gap-2"
               variant={allDone ? "default" : "outline"}

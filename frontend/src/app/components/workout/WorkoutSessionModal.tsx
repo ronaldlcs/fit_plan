@@ -105,14 +105,14 @@ export function WorkoutSessionModal({ open, onOpenChange, onSubmit }: WorkoutSes
 
           <div className="space-y-2">
             <Label>Dias da semana</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {DIAS_SEMANA.map((dia) => (
-                <label key={dia.value} className="flex items-center gap-1.5 cursor-pointer">
+                <label key={dia.value} className="flex items-center gap-2 cursor-pointer min-h-[40px]">
                   <Checkbox
                     checked={form.dias.includes(dia.value)}
                     onCheckedChange={() => toggleDia(dia.value)}
                   />
-                  <span className="text-xs">{dia.label}</span>
+                  <span className="text-sm">{dia.label}</span>
                 </label>
               ))}
             </div>
@@ -126,7 +126,7 @@ export function WorkoutSessionModal({ open, onOpenChange, onSubmit }: WorkoutSes
                   key={g}
                   type="button"
                   onClick={() => setForm((p) => ({ ...p, grupo_muscular: p.grupo_muscular === g ? "" : g }))}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  className={`text-xs px-3 py-2 rounded-full border transition-colors min-h-[36px] ${
                     form.grupo_muscular === g
                       ? "bg-primary text-primary-foreground border-primary"
                       : "border-border text-muted-foreground hover:border-foreground"

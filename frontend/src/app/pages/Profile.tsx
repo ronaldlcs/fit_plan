@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Flame, Save, Shield, Trophy, User } from "lucide-react";
+import { CheckCircle2, Flame, Lock, Save, Shield, Trophy, User } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { useAuth } from "../../hooks/useAuth";
 import { useProfile } from "../../hooks/useProfile";
 import * as userService from "../../services/userService";
+import { getUserWorkouts } from "../../services/workoutService";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ export default function Profile() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [workoutLogs, setWorkoutLogs] = useState<{ data_treino: string }[]>([]);
+
+  useEffect(() => {
+    getUserWorkouts()
+      .then(setWorkoutLogs)
+      .catch(() => {});
+  }, []);
   const [formData, setFormData] = useState({
     sexo: "masculino",
     data_nascimento: "",
@@ -62,6 +70,30 @@ export default function Profile() {
       tempo_treino_min: profile.tempo_treino_min,
     });
   }, [profile]);
+
+  const totalWorkouts = workoutLogs.length;
+
+  const currentStreak = useMemo(() => {
+    if (!workoutLogs.length) return 0;
+    const daySet = new Set(
+      workoutLogs.map((l) => new Date(l.data_treino).toISOString().split("T")[0])
+    );
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const todayStr = today.toISOString().split("T")[0];
+    const yStr = yesterday.toISOString().split("T")[0];
+    if (!daySet.has(todayStr) && !daySet.has(yStr)) return 0;
+    let cur = daySet.has(todayStr) ? new Date(today) : new Date(yesterday);
+    let streak = 0;
+    while (daySet.has(cur.toISOString().split("T")[0])) { streak++; cur.setDate(cur.getDate() - 1); }
+    return streak;
+  }, [workoutLogs]);
+
+  const achievements = useMemo(() => [
+    { label: "Primeiro treino concluído", unlocked: totalWorkouts >= 1, detail: totalWorkouts >= 1 ? "Desbloqueado" : "Complete 1 treino" },
+    { label: "Sequência de 7 dias",       unlocked: currentStreak >= 7, detail: currentStreak >= 7 ? "Desbloqueado" : `${currentStreak}/7 dias` },
+    { label: "100 treinos registrados",   unlocked: totalWorkouts >= 100, detail: `${totalWorkouts}/100 treinos` },
+  ], [totalWorkouts, currentStreak]);
 
   const profileCompletion = useMemo(() => {
     const values = Object.values(formData);
@@ -276,9 +308,17 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">Primeiro treino concluido</div>
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">7 dias de sequencia</div>
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">100 treinos registrados</div>
+              {achievements.map((a) => (
+                <div key={a.label} className={`flex items-center gap-3 p-3 rounded-lg text-sm ${a.unlocked ? "bg-yellow-50 text-yellow-800" : "bg-muted/50 text-muted-foreground"}`}>
+                  {a.unlocked
+                    ? <CheckCircle2 className="w-4 h-4 text-yellow-500 shrink-0" />
+                    : <Lock className="w-4 h-4 shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{a.label}</p>
+                    <p className="text-xs opacity-70">{a.detail}</p>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

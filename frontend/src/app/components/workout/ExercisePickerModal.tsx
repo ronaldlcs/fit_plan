@@ -176,7 +176,7 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
                     key={g}
                     type="button"
                     onClick={() => setMuscleFilter(g)}
-                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                    className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors min-h-[32px] ${
                       muscleFilter === g ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"
                     }`}
                   >
@@ -190,7 +190,7 @@ export function ExercisePickerModal({ open, onOpenChange, onAddExercise, filterE
                     key={l}
                     type="button"
                     onClick={() => setLevelFilter(l)}
-                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                    className={`text-xs px-2.5 py-1.5 rounded-full border transition-colors min-h-[32px] ${
                       levelFilter === l ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-foreground"
                     }`}
                   >

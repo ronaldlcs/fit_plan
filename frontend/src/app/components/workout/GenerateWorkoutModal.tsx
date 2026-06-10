@@ -74,7 +74,7 @@ function OptionGrid({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+          className={`rounded-lg border px-2 py-2.5 text-xs sm:text-sm font-medium transition-colors leading-tight text-center ${
             value === opt.value
               ? "border-primary bg-primary text-primary-foreground"
               : "border-border bg-background text-foreground hover:bg-muted"
@@ -329,7 +329,7 @@ export function GenerateWorkoutModal({ open, onOpenChange, onGenerate, onStartSe
                           {onStartSession && (
                             <Button
                               size="sm"
-                              className="w-full h-8 text-xs gap-1 mt-2"
+                              className="w-full h-10 text-xs gap-1 mt-2"
                               onClick={() => onStartSession(generated, session)}
                             >
                               <Play className="w-3 h-3" /> Iniciar esta sessão

@@ -28,15 +28,37 @@ export class WorkoutRepository {
     return data as PlanoTreino
   }
 
-  async getUserPlans(userId: string): Promise<PlanoTreino[]> {
+  async getUserPlans(userId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('planos_treino')
-      .select('*')
+      .select(`
+        *,
+        sessoes_treino(
+          *,
+          sessoes_exercicios(*, exercicio:exercicios(*))
+        )
+      `)
       .eq('user_id', userId)
       .order('criado_em', { ascending: false })
 
     if (error) throw error
-    return (data as PlanoTreino[]) || []
+
+    return (data || []).map((plan: any) => {
+      const { sessoes_treino, ...planRest } = plan
+      return {
+        ...planRest,
+        sessoes: (sessoes_treino ?? [])
+          .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+          .map((s: any) => {
+            const { sessoes_exercicios, ...sessaoRest } = s
+            return {
+              ...sessaoRest,
+              exercicios: (sessoes_exercicios ?? [])
+                .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+            }
+          }),
+      }
+    })
   }
 
   async createPlan(plan: Partial<PlanoTreino>): Promise<PlanoTreino> {
@@ -173,20 +195,24 @@ export class WorkoutRepository {
   }
 
   // Exercícios
-  async getAllExercises(): Promise<Exercicio[]> {
+  async getAllExercises(): Promise<any[]> {
     const { data, error } = await supabase
       .from('exercicios')
-      .select('*')
+      .select('*, grupos_musculares(id, nome)')
       .order('nome')
 
     if (error) throw error
-    return (data as Exercicio[]) || []
+    return (data || []).map((e: any) => ({
+      ...e,
+      grupo_muscular: e.grupos_musculares ?? null,
+      grupos_musculares: undefined,
+    }))
   }
 
   async getExerciseById(exerciseId: string): Promise<Exercicio | null> {
     const { data, error } = await supabase
       .from('exercicios')
-      .select('*')
+      .select('*, grupos_musculares(id, nome)')
       .eq('id', exerciseId)
       .single()
 
@@ -198,8 +224,8 @@ export class WorkoutRepository {
     nivel?: string
     grupo_muscular_id?: number
     equipamento?: string
-  }): Promise<Exercicio[]> {
-    let query = supabase.from('exercicios').select('*')
+  }): Promise<any[]> {
+    let query = supabase.from('exercicios').select('*, grupos_musculares(id, nome)')
 
     if (filters.nivel) query = query.eq('nivel', filters.nivel)
     if (filters.grupo_muscular_id) query = query.eq('grupo_muscular_id', filters.grupo_muscular_id)
@@ -208,7 +234,11 @@ export class WorkoutRepository {
     const { data, error } = await query.order('nome')
 
     if (error) throw error
-    return (data as Exercicio[]) || []
+    return (data || []).map((e: any) => ({
+      ...e,
+      grupo_muscular: e.grupos_musculares ?? null,
+      grupos_musculares: undefined,
+    }))
   }
 
   // Treinos realizados

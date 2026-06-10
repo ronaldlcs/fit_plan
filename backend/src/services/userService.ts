@@ -1,6 +1,7 @@
 import { User, UserResponse } from '../models/User'
 import { userRepository } from '../repositories/userRepository'
 import { profileRepository } from '../repositories/profileRepository'
+import { profileService } from './profileService'
 import { ApiError } from '../utils/apiError'
 
 export class UserService {
@@ -55,7 +56,8 @@ export class UserService {
       throw ApiError.notFound('Usuário não encontrado')
     }
 
-    const profile = await profileRepository.findByUserId(userId)
+    // enrichProfileWithCalculations adiciona imc, tmb, tdee, idade
+    const profile = await profileService.getProfile(userId)
 
     return {
       user: {
