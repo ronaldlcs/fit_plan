@@ -290,21 +290,6 @@ export default function ProgressPage() {
             Acompanhe sua evolução ao longo do tempo
           </p>
         </div>
-        <div className="flex gap-1">
-          {["1M", "3M", "6M", "8M", "1Y"].map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                timeRange === range
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Stats Cards */}
