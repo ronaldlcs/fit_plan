@@ -1,0 +1,59 @@
+services:
+  # ─── Backend: API Node.js/Express (TypeScript) ───────────────────────────────
+  - type: web
+    name: fitplan-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Supabase — define manualmente no dashboard do Render após o deploy
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+      # JWT — valores gerados automaticamente pelo Render
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+
+      # Groq API Key — define manualmente no dashboard do Render após o deploy
+      - key: GROQ_API_KEY
+        sync: false
+
+      # CORS — aponta automaticamente para a URL do frontend
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: fitplan-frontend
+          property: hostWithScheme
+
+  # ─── Frontend: React/Vite (Site Estático) ────────────────────────────────────
+  - type: web
+    name: fitplan-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      # Após o primeiro deploy do backend, preencha com:
+      # https://fitplan-backend.onrender.com/api
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # Redireciona todas as rotas para o index.html (SPA)
+      - type: rewrite
+        source: /*
+        destination: /index.html
